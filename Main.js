@@ -170,8 +170,8 @@ ModAPI.addEventListener("blockbreak", function(event) {
         }
 
         if (!isAxe) {
-            // Prevent the block from dropping items
-            event.setDropItems(false); // Prevent default drops
+            // Cancel the block breaking event
+            event.setCancelled(true); // Prevent the block from breaking
 
             // Drop a stick at the block's location
             try {
