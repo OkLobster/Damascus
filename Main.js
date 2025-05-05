@@ -143,27 +143,37 @@
     ModAPI.dedicatedServer.appendCode(registerRecipe);
     registerRecipe();
 
-    // Blockbreak listener (axe required for wood blocks)
+    // Blockbreak listener (wood doesn't drop if no axe is used)
     ModAPI.addEventListener("blockbreak", function(event) {
         let player = event.player;
         let block = event.block;
-        let heldItem = player.inventory.getCurrentItem();
+        let heldItem = player.inventory.getCurrentItem(); // Get the held item (ItemStack or null)
 
         console.log("Blockbreak triggered - Material:", block.material, "ID:", block.id, "Held Item:", heldItem ? heldItem.item.getUnlocalizedName() : "none");
 
-        if (block.material === "wood") {
+        // Only modify behavior for wood blocks
+        if (block.material && block.material.toLowerCase() === "wood") {
             let isAxe = false;
+
+            // Check if the player is holding a valid axe
             if (heldItem) {
-                let item = heldItem.item;
+                let item = heldItem.item; // Get the Item object from ItemStack
                 let itemAxeClass = ModAPI.reflect.getClassById("net.minecraft.item.ItemAxe");
-                isAxe = itemAxeClass.instanceOf(item.getRef()) || item.getUnlocalizedName() === "item.flint_hatchet";
-                console.log("Held item is axe:", isAxe);
+
+                try {
+                    // Check if the held item is an axe or the custom Flint Hatchet
+                    isAxe = itemAxeClass.instanceOf(item.getRef()) || item.getUnlocalizedName() === "item.flint_hatchet";
+                    console.log("Held item is an axe:", isAxe);
+                } catch (e) {
+                    console.error("Error checking if item is an axe:", e);
+                }
             }
 
+            // If the player is not using an axe, prevent the block from dropping items
             if (!isAxe) {
-                event.setCancelled(true);
-                player.sendMessage("You need an axe to break wood!");
-                console.log("Prevented wood break - no axe held");
+                event.setDropItems(false); // Prevent drops from being added to the world
+                player.sendMessage("You need an axe to collect wood!");
+                console.log("Prevented wood drops - no axe held");
             }
         }
     });
