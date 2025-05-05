@@ -143,7 +143,7 @@
     ModAPI.dedicatedServer.appendCode(registerRecipe);
     registerRecipe();
 
-// Blockbreak listener (wood doesn't drop if no axe is used)
+// Blockbreak listener (replace wood and drop a stick if broken without an axe)
 ModAPI.addEventListener("blockbreak", function(event) {
     let player = event.player;
     let block = event.block;
@@ -169,24 +169,34 @@ ModAPI.addEventListener("blockbreak", function(event) {
             }
         }
 
-        // If the player is not using an axe, prevent the block from dropping items
         if (!isAxe) {
-            event.setDropItems(false); // Attempt to prevent drops using the API method
+            // Prevent the block from dropping items
+            event.setDropItems(false); // Prevent default drops
 
-            // Fallback: Explicitly clear the drop list if setDropItems doesn't work
+            // Drop a stick at the block's location
             try {
-                if (event.getDrops) {
-                    let drops = event.getDrops(); // Get the drops from the event
-                    drops.clear(); // Remove all drops
-                    console.log("Explicitly cleared drops for wood block.");
+                let stickItem = ModAPI.items["stick"]; // Get the stick item
+                if (stickItem) {
+                    let stickDrop = stickItem.createStack(1); // Create a stack of 1 stick
+                    block.world.dropItem(stickDrop, block.pos); // Drop the stick at the block's position
+                    console.log("Dropped a stick at the block's location.");
+                } else {
+                    console.error("Stick item not found!");
                 }
             } catch (e) {
-                console.error("Failed to clear drops explicitly:", e);
+                console.error("Error dropping the stick:", e);
+            }
+
+            // Replace the block with the same wood block
+            try {
+                block.world.setBlock(block.pos, block.id, block.metadata); // Set the block back to its original state
+                console.log("Replaced the wood block at the original position.");
+            } catch (e) {
+                console.error("Error replacing the wood block:", e);
             }
 
             // Send feedback to the player
-            player.sendMessage("You need an axe to collect wood!");
-            console.log("Prevented wood drops - no axe held");
+            player.sendMessage("You need an axe to collect wood! The block has been replaced, and a stick dropped.");
         }
     }
 });
