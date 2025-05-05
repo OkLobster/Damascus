@@ -143,38 +143,51 @@
     ModAPI.dedicatedServer.appendCode(registerRecipe);
     registerRecipe();
 
-    // Blockbreak listener (wood doesn't drop if no axe is used)
-    ModAPI.addEventListener("blockbreak", function(event) {
-        let player = event.player;
-        let block = event.block;
-        let heldItem = player.inventory.getCurrentItem(); // Get the held item (ItemStack or null)
+// Blockbreak listener (wood doesn't drop if no axe is used)
+ModAPI.addEventListener("blockbreak", function(event) {
+    let player = event.player;
+    let block = event.block;
+    let heldItem = player.inventory.getCurrentItem(); // Get the held item (ItemStack or null)
 
-        console.log("Blockbreak triggered - Material:", block.material, "ID:", block.id, "Held Item:", heldItem ? heldItem.item.getUnlocalizedName() : "none");
+    console.log("Blockbreak triggered - Material:", block.material, "ID:", block.id, "Held Item:", heldItem ? heldItem.item.getUnlocalizedName() : "none");
 
-        // Only modify behavior for wood blocks
-        if (block.material && block.material.toLowerCase() === "wood") {
-            let isAxe = false;
+    // Only modify behavior for wood blocks
+    if (block.material && block.material.toLowerCase() === "wood") {
+        let isAxe = false;
 
-            // Check if the player is holding a valid axe
-            if (heldItem) {
-                let item = heldItem.item; // Get the Item object from ItemStack
-                let itemAxeClass = ModAPI.reflect.getClassById("net.minecraft.item.ItemAxe");
+        // Check if the player is holding a valid axe
+        if (heldItem) {
+            let item = heldItem.item; // Get the Item object from ItemStack
+            let itemAxeClass = ModAPI.reflect.getClassById("net.minecraft.item.ItemAxe");
 
-                try {
-                    // Check if the held item is an axe or the custom Flint Hatchet
-                    isAxe = itemAxeClass.instanceOf(item.getRef()) || item.getUnlocalizedName() === "item.flint_hatchet";
-                    console.log("Held item is an axe:", isAxe);
-                } catch (e) {
-                    console.error("Error checking if item is an axe:", e);
-                }
-            }
-
-            // If the player is not using an axe, prevent the block from dropping items
-            if (!isAxe) {
-                event.setDropItems(false); // Prevent drops from being added to the world
-                player.sendMessage("You need an axe to collect wood!");
-                console.log("Prevented wood drops - no axe held");
+            try {
+                // Check if the held item is an axe or the custom Flint Hatchet
+                isAxe = itemAxeClass.instanceOf(item.getRef()) || item.getUnlocalizedName() === "item.flint_hatchet";
+                console.log("Held item is an axe:", isAxe);
+            } catch (e) {
+                console.error("Error checking if item is an axe:", e);
             }
         }
-    });
+
+        // If the player is not using an axe, prevent the block from dropping items
+        if (!isAxe) {
+            event.setDropItems(false); // Attempt to prevent drops using the API method
+
+            // Fallback: Explicitly clear the drop list if setDropItems doesn't work
+            try {
+                if (event.getDrops) {
+                    let drops = event.getDrops(); // Get the drops from the event
+                    drops.clear(); // Remove all drops
+                    console.log("Explicitly cleared drops for wood block.");
+                }
+            } catch (e) {
+                console.error("Failed to clear drops explicitly:", e);
+            }
+
+            // Send feedback to the player
+            player.sendMessage("You need an axe to collect wood!");
+            console.log("Prevented wood drops - no axe held");
+        }
+    }
+});
 })();
