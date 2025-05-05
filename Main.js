@@ -171,7 +171,7 @@ ModAPI.addEventListener("blockbreak", function(event) {
 
         if (!isAxe) {
             // Cancel the block breaking event
-            event.setCancelled(true); // Prevent the block from breaking
+            event.setCancelled(true); // Prevent the block from breaking normally
 
             // Drop a stick at the block's location
             try {
@@ -196,7 +196,7 @@ ModAPI.addEventListener("blockbreak", function(event) {
             }
 
             // Send feedback to the player
-            player.sendMessage("You need an axe to collect wood! The block has been replaced, and a stick dropped.");
+            player.sendMessage("You need an axe to collect wood!");
         }
     }
 });
