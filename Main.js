@@ -16,15 +16,14 @@
 
         function CustomItem() {
             itemSuper(this);
-            this.$maxStackSize = 1; // Like wooden_axe
-            this.$setMaxDamage(50); // Durability 50
+            this.$maxStackSize = 1;
+            this.$setMaxDamage(50);
             this.$setCreativeTab(ModAPI.reflect.getClassById("net.minecraft.creativetab.CreativeTabs").staticVariables.tabTools);
         }
         ModAPI.reflect.prototypeStack(itemClass, CustomItem);
 
-        // Mimic wooden_axe properties
         CustomItem.prototype.$getMaxItemUseDuration = function () {
-            return 0; // No right-click action
+            return 0;
         };
         CustomItem.prototype.$getItemUseAction = function () {
             return itemUseAnimation;
@@ -37,7 +36,7 @@
             try {
                 const AttributeModifier = ModAPI.reflect.getClassByName("AttributeModifier").constructors.find(x => x.length === 4);
                 const secretUUID = ModAPI.reflect.getClassByName("Item").staticVariables.itemModifierUUID;
-                const modifier = AttributeModifier(secretUUID, ModAPI.util.str("Tool modifier"), 1.0, 0); // 1.0 + base 1.0 = ~2.0 damage
+                const modifier = AttributeModifier(secretUUID, ModAPI.util.str("Tool modifier"), 1.0, 0);
                 attributeMap.$put(ModAPI.util.str("generic.attackDamage"), modifier);
                 console.log("Applied attack damage modifier to Flint Hatchet");
             } catch (e) {
@@ -46,7 +45,6 @@
             return attributeMap;
         };
         CustomItem.prototype.$getStrVsBlock = function (itemstack, block) {
-            // Wooden axe: ~2.0 speed on wood
             return block.material === "wood" ? 2.0 : 1.0;
         };
 
@@ -145,46 +143,28 @@
     ModAPI.dedicatedServer.appendCode(registerRecipe);
     registerRecipe();
 
-// Blockbreak listener (refined: axe required for wood, vanilla behavior for others)
-ModAPI.addEventListener("blockbreak", function(event) {
-    let player = event.player;
-    let block = event.block;
-    let heldItem = player.inventory.getCurrentItem(); // ItemStack or null
+    // Blockbreak listener (axe required for wood blocks)
+    ModAPI.addEventListener("blockbreak", function(event) {
+        let player = event.player;
+        let block = event.block;
+        let heldItem = player.inventory.getCurrentItem();
 
-    console.log("Blockbreak triggered - Material:", block.material, "ID:", block.id, "Held Item:", heldItem ? heldItem.item.getUnlocalizedName() : "none");
+        console.log("Blockbreak triggered - Material:", block.material, "ID:", block.id, "Held Item:", heldItem ? heldItem.item.getUnlocalizedName() : "none");
 
-    // Only restrict wood blocks
-    if (block.material === "wood") {
-        let isAxe = false;
-
-        // Check if the player is holding an item
-        if (heldItem) {
-            let item = heldItem.item; // Get Item from ItemStack
-            let itemAxeClass = ModAPI.reflect.getClassById("net.minecraft.item.ItemAxe");
-
-            // Check if the item is an axe or the custom Flint Hatchet
-            try {
+        if (block.material === "wood") {
+            let isAxe = false;
+            if (heldItem) {
+                let item = heldItem.item;
+                let itemAxeClass = ModAPI.reflect.getClassById("net.minecraft.item.ItemAxe");
                 isAxe = itemAxeClass.instanceOf(item.getRef()) || item.getUnlocalizedName() === "item.flint_hatchet";
-                console.log("Held item is axe:", isAxe, "Item class:", item.getRef().constructor.name);
-            } catch (e) {
-                console.error("Error checking item class:", e);
+                console.log("Held item is axe:", isAxe);
+            }
+
+            if (!isAxe) {
+                event.setCancelled(true);
+                player.sendMessage("You need an axe to break wood!");
+                console.log("Prevented wood break - no axe held");
             }
         }
-
-        if (!isAxe) {
-            // Cancel the block break event
-            event.setCancelled(true);
-
-            // Send feedback to the player
-            player.sendMessage("You need an axe to break wood!");
-            console.log("Prevented wood break - no axe held");
-        }
-        if (!heldItem) {
-    player.sendMessage("You need an axe to break wood!");
-    event.setCancelled(true);
-    return;
-}
-    }
-    // All other blocks follow vanilla behavior
     });
 })();
