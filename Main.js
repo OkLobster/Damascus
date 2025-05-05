@@ -143,61 +143,71 @@
     ModAPI.dedicatedServer.appendCode(registerRecipe);
     registerRecipe();
 
-// Blockbreak listener (replace wood and drop a stick if broken without an axe)
-ModAPI.addEventListener("blockbreak", function(event) {
-    let player = event.player;
-    let block = event.block;
-    let heldItem = player.inventory.getCurrentItem(); // Get the held item (ItemStack or null)
+    // Remove vanilla recipes
+    ModAPI.addEventListener("bootstrap", function() {
+        console.log("Removing vanilla recipes...");
 
-    console.log("Blockbreak triggered - Material:", block.material, "ID:", block.id, "Held Item:", heldItem ? heldItem.item.getUnlocalizedName() : "none");
+        try {
+            // Get the crafting manager
+            let craftingManager = ModAPI.reflect.getClassById("net.minecraft.item.crafting.CraftingManager").staticMethods.getInstance.method();
 
-    // Only modify behavior for wood blocks
-    if (block.material && block.material.toLowerCase() === "wood") {
-        let isAxe = false;
+            // Get the current list of recipes
+            let recipeList = craftingManager.$getRecipeList();
 
-        // Check if the player is holding a valid axe
-        if (heldItem) {
-            let item = heldItem.item; // Get the Item object from ItemStack
-            let itemAxeClass = ModAPI.reflect.getClassById("net.minecraft.item.ItemAxe");
-
-            try {
-                // Check if the held item is an axe or the custom Flint Hatchet
-                isAxe = itemAxeClass.instanceOf(item.getRef()) || item.getUnlocalizedName() === "item.flint_hatchet";
-                console.log("Held item is an axe:", isAxe);
-            } catch (e) {
-                console.error("Error checking if item is an axe:", e);
-            }
-        }
-
-        if (!isAxe) {
-            // Cancel the block breaking event
-            event.setCancelled(true); // Prevent the block from breaking normally
-
-            // Drop a stick at the block's location
-            try {
-                let stickItem = ModAPI.items["stick"]; // Get the stick item
-                if (stickItem) {
-                    let stickDrop = stickItem.createStack(1); // Create a stack of 1 stick
-                    block.world.dropItem(stickDrop, block.pos); // Drop the stick at the block's position
-                    console.log("Dropped a stick at the block's location.");
-                } else {
-                    console.error("Stick item not found!");
+            // Filter out vanilla recipes you want to remove
+            // Example: Remove all recipes producing wooden planks
+            let recipesToRemove = recipeList.filter(recipe => {
+                try {
+                    let output = recipe.$getRecipeOutput();
+                    return output && output.$getUnlocalizedName().includes("planks"); // Match item name
+                } catch (e) {
+                    return false; // Skip recipes that cannot be checked
                 }
-            } catch (e) {
-                console.error("Error dropping the stick:", e);
-            }
+            });
 
-            // Replace the block with the same wood block
-            try {
-                block.world.setBlock(block.pos, block.id, block.metadata); // Set the block back to its original state
-                console.log("Replaced the wood block at the original position.");
-            } catch (e) {
-                console.error("Error replacing the wood block:", e);
-            }
+            // Remove the matched recipes from the recipe list
+            recipesToRemove.forEach(recipe => {
+                recipeList.remove(recipe);
+                console.log("Removed vanilla recipe:", recipe);
+            });
 
-            // Send feedback to the player
-            player.sendMessage("You need an axe to collect wood!");
+            console.log("Vanilla recipes successfully removed.");
+        } catch (e) {
+            console.error("Error removing vanilla recipes:", e);
         }
-    }
-});
+    });
+
+    // Blockbreak listener (wood doesn't drop if no axe is used)
+    ModAPI.addEventListener("blockbreak", function(event) {
+        let player = event.player;
+        let block = event.block;
+        let heldItem = player.inventory.getCurrentItem(); // Get the held item (ItemStack or null)
+
+        console.log("Blockbreak triggered - Material:", block.material, "ID:", block.id, "Held Item:", heldItem ? heldItem.item.getUnlocalizedName() : "none");
+
+        // Only modify behavior for wood blocks
+        if (block.material && block.material.toLowerCase() === "wood") {
+            let isAxe = false;
+
+            // Check if the player is holding a valid axe
+            if (heldItem) {
+                let item = heldItem.item; // Get the Item object from ItemStack
+                let itemAxeClass = ModAPI.reflect.getClassById("net.minecraft.item.ItemAxe");
+
+                try {
+                    // Check if the held item is an axe or the custom Flint Hatchet
+                    isAxe = itemAxeClass.instanceOf(item.getRef()) || item.getUnlocalizedName() === "item.flint_hatchet";
+                    console.log("Held item is an axe:", isAxe);
+                } catch (e) {
+                    console.error("Error checking if item is an axe:", e);
+                }
+            }
+
+            if (!isAxe) {
+                // Prevent the block from dropping items
+                event.setDropItems(false); // Prevent default drops
+                console.log("Prevented wood drops - no axe held.");
+            }
+        }
+    });
 })();
