@@ -7,7 +7,7 @@
     ModAPI.meta.description("Adds a lot of content and stages to the game.");
     ModAPI.meta.credits("By OkLobster");
 
-    // Item registration (adapted from BEA's ItemDatablock)
+    // Item registration
     function ServersideItem() {
         var itemClass = ModAPI.reflect.getClassById("net.minecraft.item.Item");
         var itemSuper = ModAPI.reflect.getSuper(itemClass, (x) => x.length === 1);
@@ -16,15 +16,15 @@
 
         function CustomItem() {
             itemSuper(this);
-            this.$maxStackSize = 1; // Like wooden_axe
-            this.$setMaxDamage(50); // Durability 50
+            this.$maxStackSize = 1;
+            this.$setMaxDamage(50);
             this.$setCreativeTab(ModAPI.reflect.getClassById("net.minecraft.creativetab.CreativeTabs").staticVariables.tabTools);
         }
         ModAPI.reflect.prototypeStack(itemClass, CustomItem);
 
-        // Mimic wooden_axe properties
+        
         CustomItem.prototype.$getMaxItemUseDuration = function () {
-            return 0; // No right-click action
+            return 0;
         };
         CustomItem.prototype.$getItemUseAction = function () {
             return itemUseAnimation;
@@ -34,12 +34,10 @@
         };
         CustomItem.prototype.$getItemAttributeModifiers = function () {
             var attributeMap = itemGetAttributes.apply(this, []);
-            // Wooden axe: ~2.0 damage (base 1.0 + 1.0 modifier)
             efb2__attrMapSet(attributeMap, "generic.attackDamage", 1.0);
             return attributeMap;
         };
-        CustomItem.prototype.$getStrVsBlock = function (itemstack, block) {
-            // Wooden axe: ~2.0 speed on wood
+        CustomItem.prototype.$getStrVsBlock = function (itemstack, block) 
             return block.material === "wood" ? 2.0 : 1.0;
         };
 
@@ -65,7 +63,6 @@
     ModAPI.dedicatedServer.appendCode(ServersideItem);
     var customItem = ServersideItem();
 
-    // Texture and model registration (adapted from BEA)
     ModAPI.addEventListener("lib:asyncsink", async () => {
         ModAPI.addEventListener("lib:asyncsink:registeritems", (renderItem) => {
             renderItem.registerItem(customItem, ModAPI.util.str("flint_hatchet"));
