@@ -146,32 +146,30 @@
     ModAPI.dedicatedServer.appendCode(registerRecipe);
     registerRecipe();
 
-    // Blockbreak listener
+    // Blockbreak listener (simplified: axe required for wood, vanilla behavior for others)
     ModAPI.addEventListener("blockbreak", function(event) {
         let player = event.player;
         let block = event.block;
-        console.log("Blockbreak triggered - Material:", block.material, "ID:", block.id);
-        let allowedBlocks = [
-            "minecraft:dirt",
-            "minecraft:sand",
-            "minecraft:gravel",
-            "minecraft:soul_sand",
-            "minecraft:clay",
-            "minecraft:snow",
-            "minecraft:snow_layer",
-            "minecraft:mycelium",
-            "minecraft:tallgrass",
-            "minecraft:deadbush"
-        ];
-        if (!player.inventory.getCurrentItem()) {
-            if (block.material === "wood") {
+        let heldItem = player.inventory.getCurrentItem(); // ItemStack or null
+        console.log("Blockbreak triggered - Material:", block.material, "ID:", block.id, "Held Item:", heldItem ? heldItem.item.getUnlocalizedName() : "none");
+
+        // Only restrict wood blocks
+        if (block.material === "wood") {
+            let isAxe = false;
+            if (heldItem) {
+                let item = heldItem.item; // Get Item from ItemStack
+                let itemAxeClass = ModAPI.reflect.getClassById("net.minecraft.item.ItemAxe");
+                // Check if item is ItemAxe or damascus:flint_hatchet
+                isAxe = itemAxeClass.instanceOf(item.getRef()) || item.getUnlocalizedName() === "item.flint_hatchet";
+                console.log("Held item is axe:", isAxe, "Item class:", item.getRef().constructor.name);
+            }
+
+            if (!isAxe) {
                 event.preventDefault = true;
-                player.sendMessage("You need a tool to break wood!");
-                console.log("Prevented wood break");
-            } else if (block.material !== "leaves" && !allowedBlocks.includes(block.id)) {
-                event.preventDefault = true;
-                player.sendMessage("You need a tool to break this block!");
+                player.sendMessage("You need an axe to break wood!");
+                console.log("Prevented wood break - no axe held");
             }
         }
+        // All other blocks follow vanilla behavior
     });
 })();
