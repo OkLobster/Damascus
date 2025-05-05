@@ -7,6 +7,16 @@
     ModAPI.meta.description("Adds a lot of content and stages to the game.");
     ModAPI.meta.credits("By OkLobster");
 
+    function defineAttrMapSet() {
+        const AttributeModifier = ModAPI.reflect.getClassByName("AttributeModifier").constructors.find(x => x.length === 4);
+        const secretUUID = ModAPI.reflect.getClassByName("Item").staticVariables.itemModifierUUID;
+        globalThis.efb2__attrMapSet = function attrMapSet(map, key, value) {
+            map.$put(ModAPI.util.str(key), AttributeModifier(secretUUID, ModAPI.util.str("Tool modifier"), value, 0));
+        };
+    }
+    ModAPI.dedicatedServer.appendCode(defineAttrMapSet);
+    defineAttrMapSet();
+    
     // Item registration
     function ServersideItem() {
         var itemClass = ModAPI.reflect.getClassById("net.minecraft.item.Item");
