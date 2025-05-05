@@ -179,6 +179,11 @@ ModAPI.addEventListener("blockbreak", function(event) {
             player.sendMessage("You need an axe to break wood!");
             console.log("Prevented wood break - no axe held");
         }
+        if (!heldItem) {
+    player.sendMessage("You need an axe to break wood!");
+    event.setCancelled(true);
+    return;
+}
     }
     // All other blocks follow vanilla behavior
     });
