@@ -1,45 +1,53 @@
-ModAPI.meta.title("Damascus")
-ModAPI.meta.description("Adds a multitude of content and game stages.")
-ModAPI.meta.credits("By OkLobster")
-ModAPI.meta.icon("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAMdJREFUOE9jZKAQMKLrn8rK+j/7928McVz2oCgEaQYpBBlArEF4bcpkZ/8//edPvGpwSoI06/z7x3CFiYkBnyE4wwBmAMhLIENAAJtBBF0g/x8cLAxbmZnBBqCHDVYDQLaDNGX8/MnwmIWFYSI7O8Pur1+xqsUq6MrN/b/n61ewZhBYxcLC8JyZGashOA3I//mT4RYvL8OTb9/AhlxmYSHeAJAGEwaG/4Lc3GDN779+ZTjDwEC8F0hJ3UQnWaKSMik2w9QOvAsAiQVQEU/ucD4AAAAASUVORK5CYIIA")
+(function CustomItemMod() {
+    //...
 
-// constants
-const flinthatchettex = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAS5JREFUOE+lkz1Lw1AUht841HATCUbDjaAOLpmFikMLDi5SEOzuH/NHCCIuLg51EB2sk1TsFBGapgSx+VrCkRtIIJgv8Sx3OO/z3vNxr4R/hlTHc84pyzuOU6qtNBCwYRgp7/s+oihCmUmjgYBFBEGAMAzFWWBKDbLbMzhJEsRxnBqcH2/g4trOuUYDAYsQBrIsw/O8rKKUrW0h61+cjLHUQNM0uK6bz6N2CwIc9k3qdCTcPH5D1/W/GQz7W2TtMtw+zTGeLiVFUUhV1cI2Kis47XFiqyt4s328TJeVutLE4EAnkzPcjxd4/4xr2/yVHBxyOtpfx9VohofXr8YZFQQn3U3a21Zx97zAxPYb4cIaz3omda01XI5m6cDa/rFcaO0wkkCYfESt4dqH1LaCHzUaghF9dEXTAAAAAElFTkSuQmCC"
-AsyncSink.setFile("resourcepacks/AsyncSinkLib/assets/minecraft/textures/items/flint_hatchet.png", flinghatchettex);
+    function CustomItem() {
+        var creativeMiscTab = ModAPI.reflect.getClassById("net.minecraft.creativetab.CreativeTabs").staticVariables.tabMisc; //chuck it in the miscellaneous category ig
+        var itemClass = ModAPI.reflect.getClassById("net.minecraft.item.Item"); //Get the item class
+        var itemSuper = ModAPI.reflect.getSuper(itemClass, (x) => x.length === 1); //Get the super() function of the item class that has a length of 1
+        function CustomItem() {
+            itemSuper(this); //Use super function to get block properties on this class.
+            this.$setCreativeTab(creativeMiscTab); //Set the creative tab of the item to be the misc tab
+        }
+        ModAPI.reflect.prototypeStack(itemClass, CustomItem); // ModAPI equivalent of `extends` in java
+        CustomItem.prototype.$onItemRightClick = function ($itemstack, $world, $player) { //example of how to override a method
+            //use ModAPI.util.wrap to create a proxy of the player and the world without $ prefixes on the properties and methods
+            var player = ModAPI.util.wrap($player);
+            var world = ModAPI.util.wrap($world);
 
-// flint hatchet
-<ModAPI.registerItem({
-  console.log("Registered Flint Hatchet.");
-  tag: "damascus:flint_hatchet",
-  base: "wooden_axe",
-  name: "Flint Hatchet"
-  qty: 1,
-  texture: "minecraft:flint_hatchet",
-  damageVsEntity: 3.0,
-  enchantable: true,
-  maxDamage: 40,
-  harvestLevel: 1,
-  hervestType: "axe",
-  useRecipe: true,
-  recipe: [
-    "FF",
-    "SZ"
-  ],
-  recipeLegend: {
-    "F": {
-      "type": "item",
-      "id": "flint"
-    },
-    "S": {
-      "type": "item",
-      "id": "stick"
-    },
-    "Z": {
-      "type": "item",
-      "id": "string"
+            if (!world.isRemote) { //If we are on the server
+                // Math.random() returns a number from 0.0 to 1.0, so we subtract 0.5 and then multiply by 2 to make it become -1.0 to 1.0 instead
+                player.motionX += (Math.random() - 0.5) * 3;
+                player.motionZ += (Math.random() - 0.5) * 3;
+
+                player.motionY += Math.random() * 1.5; // gravity is a thing, so no negative numbers here otherwise it'll be boring
+            }
+            
+            return $itemstack;
+        }
+
+        // Internal registration function. This will be used to actually register the item on both the client and the server.
+        function internal_reg() {
+            // Construct an instance of the CustomItem, and set it's unlocalized name (translation id)
+            var custom_item = (new CustomItem()).$setUnlocalizedName(
+                ModAPI.util.str("custom_item")
+            );
+            //Register it using ModAPI.keygen() to get the item id.
+            itemClass.staticMethods.registerItem.method(ModAPI.keygen.item("custom_item"), ModAPI.util.str("custom_item"), custom_item);
+
+            //Expose it to ModAPI
+            ModAPI.items["custom_item"] = custom_item;
+            
+            //return the instance.
+            return custom_item;
+        }
+
+        //if the item global exists (and it will on the client), register the item and return the registered instance.
+        if (ModAPI.items) {
+            return internal_reg();
+        } else {
+            //Otherwise attatch the registration method to the bootstrap method.
+            ModAPI.addEventListener("bootstrap", internal_reg);
+        }
     }
-  }
-  }
-});
-
-
+})();
