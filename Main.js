@@ -143,6 +143,44 @@
     ModAPI.dedicatedServer.appendCode(registerRecipe);
     registerRecipe();
 
+        function registerRecipe() {
+        function internalRegister() {
+            var ObjectClass = ModAPI.reflect.getClassById("java.lang.Object").class;
+            function ToChar(char) {
+                return ModAPI.reflect.getClassById("java.lang.Character").staticMethods.valueOf.method(char[0].charCodeAt(0));
+            }
+            var resultItemArg = "item/air";
+            var recipeLegend = {
+                "W": { type: "item", id: "planks" },
+                "S": { type: "item", id: "stick" },
+            };
+            var recipePattern = [" WW", " SW", " S "];
+            var recipeInternal = [];
+            Object.keys(recipeLegend).forEach((key) => {
+                recipeInternal.push(ToChar(key));
+                var ingredient = ModAPI.items[recipeLegend[key].id].getRef();
+                recipeInternal.push(ingredient);
+            });
+
+            var recipeContents = recipePattern.map(row => ModAPI.util.str(row));
+            var recipe = ModAPI.util.makeArray(ObjectClass, recipeContents.concat(recipeInternal));
+
+            var itemStackFromItem = ModAPI.reflect.getClassById("net.minecraft.item.ItemStack").constructors[4];
+            var resultItem = itemStackFromItem(ModAPI.items[resultItemArg.replace("item/", "")].getRef(), 1);
+
+            var craftingManager = ModAPI.reflect.getClassById("net.minecraft.item.crafting.CraftingManager").staticMethods.getInstance.method();
+            ModAPI.hooks.methods.nmic_CraftingManager_addRecipe(craftingManager, resultItem, recipe);
+        }
+
+        if (ModAPI.items) {
+            internalRegister();
+        } else {
+            ModAPI.addEventListener("bootstrap", internalRegister);
+        }
+    }
+    ModAPI.dedicatedServer.appendCode(registerRecipe);
+    registerRecipe();
+
 // Blockbreak listener (wood doesn't drop if no axe is used)
 ModAPI.addEventListener("blockbreak", function(event) {
     let player = event.player;
