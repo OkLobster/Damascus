@@ -7,16 +7,6 @@
     ModAPI.meta.description("Adds a lot of content and stages to the game.");
     ModAPI.meta.credits("By OkLobster");
 
-    function defineAttrMapSet() {
-        const AttributeModifier = ModAPI.reflect.getClassByName("AttributeModifier").constructors.find(x => x.length === 4);
-        const secretUUID = ModAPI.reflect.getClassByName("Item").staticVariables.itemModifierUUID;
-        globalThis.efb2__attrMapSet = function attrMapSet(map, key, value) {
-            map.$put(ModAPI.util.str(key), AttributeModifier(secretUUID, ModAPI.util.str("Tool modifier"), value, 0));
-        };
-    }
-    ModAPI.dedicatedServer.appendCode(defineAttrMapSet);
-    defineAttrMapSet();
-    
     // Item registration
     function ServersideItem() {
         var itemClass = ModAPI.reflect.getClassById("net.minecraft.item.Item");
@@ -26,15 +16,15 @@
 
         function CustomItem() {
             itemSuper(this);
-            this.$maxStackSize = 1;
-            this.$setMaxDamage(50);
+            this.$maxStackSize = 1; // Like wooden_axe
+            this.$setMaxDamage(50); // Durability 50
             this.$setCreativeTab(ModAPI.reflect.getClassById("net.minecraft.creativetab.CreativeTabs").staticVariables.tabTools);
         }
         ModAPI.reflect.prototypeStack(itemClass, CustomItem);
 
-        
+        // Mimic wooden_axe properties
         CustomItem.prototype.$getMaxItemUseDuration = function () {
-            return 0;
+            return 0; // No right-click action
         };
         CustomItem.prototype.$getItemUseAction = function () {
             return itemUseAnimation;
@@ -44,10 +34,20 @@
         };
         CustomItem.prototype.$getItemAttributeModifiers = function () {
             var attributeMap = itemGetAttributes.apply(this, []);
-            efb2__attrMapSet(attributeMap, "generic.attackDamage", 1.0);
+            try {
+                // Manually apply attack damage modifier (mimics wooden_axe: ~2.0 damage)
+                const AttributeModifier = ModAPI.reflect.getClassByName("AttributeModifier").constructors.find(x => x.length === 4);
+                const secretUUID = ModAPI.reflect.getClassByName("Item").staticVariables.itemModifierUUID;
+                const modifier = AttributeModifier(secretUUID, ModAPI.util.str("Tool modifier"), 1.0, 0); // 1.0 + base 1.0 = ~2.0 damage
+                attributeMap.$put(ModAPI.util.str("generic.attackDamage"), modifier);
+                console.log("Applied attack damage modifier to Flint Hatchet");
+            } catch (e) {
+                console.error("Failed to apply attack damage modifier:", e);
+            }
             return attributeMap;
         };
-        CustomItem.prototype.$getStrVsBlock = function (itemstack, block) 
+        CustomItem.prototype.$getStrVsBlock = function (itemstack, block) {
+            // Wooden axe: ~2.0 speed on wood
             return block.material === "wood" ? 2.0 : 1.0;
         };
 
@@ -73,6 +73,7 @@
     ModAPI.dedicatedServer.appendCode(ServersideItem);
     var customItem = ServersideItem();
 
+    // Texture and model registration
     ModAPI.addEventListener("lib:asyncsink", async () => {
         ModAPI.addEventListener("lib:asyncsink:registeritems", (renderItem) => {
             renderItem.registerItem(customItem, ModAPI.util.str("flint_hatchet"));
@@ -105,7 +106,7 @@
         );
     });
 
-    // Crafting recipe (adapted from BEA's CraftingRecipeDatablock)
+    // Crafting recipe
     function registerRecipe() {
         function internalRegister() {
             var ObjectClass = ModAPI.reflect.getClassById("java.lang.Object").class;
@@ -118,9 +119,7 @@
                 "S": { type: "item", id: "stick" },
                 "Z": { type: "item", id: "string" }
             };
-            var recipePattern = ["   ",
-                                 " FF",
-                                 " SZ"];
+            var recipePattern = ["   ", " FF", " SZ"];
             var recipeInternal = [];
             Object.keys(recipeLegend).forEach((key) => {
                 recipeInternal.push(ToChar(key));
@@ -147,7 +146,7 @@
     ModAPI.dedicatedServer.appendCode(registerRecipe);
     registerRecipe();
 
-    // Blockbreak listener (fixed to prevent wood hand-breaking)
+    // Blockbreak listener
     ModAPI.addEventListener("blockbreak", function(event) {
         let player = event.player;
         let block = event.block;
