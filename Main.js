@@ -35,7 +35,6 @@
         CustomItem.prototype.$getItemAttributeModifiers = function () {
             var attributeMap = itemGetAttributes.apply(this, []);
             try {
-                // Manually apply attack damage modifier (mimics wooden_axe: ~2.0 damage)
                 const AttributeModifier = ModAPI.reflect.getClassByName("AttributeModifier").constructors.find(x => x.length === 4);
                 const secretUUID = ModAPI.reflect.getClassByName("Item").staticVariables.itemModifierUUID;
                 const modifier = AttributeModifier(secretUUID, ModAPI.util.str("Tool modifier"), 1.0, 0); // 1.0 + base 1.0 = ~2.0 damage
@@ -119,7 +118,7 @@
                 "S": { type: "item", id: "stick" },
                 "Z": { type: "item", id: "string" }
             };
-            var recipePattern = ["   ", " FF", " SZ"];
+            var recipePattern = ["FF", "SZ"];
             var recipeInternal = [];
             Object.keys(recipeLegend).forEach((key) => {
                 recipeInternal.push(ToChar(key));
