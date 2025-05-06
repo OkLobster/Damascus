@@ -180,6 +180,42 @@
     }
     ModAPI.dedicatedServer.appendCode(registerRecipe);
     registerRecipe();
+        // Set harvest level for wood blocks
+    function setWoodHarvestLevel() {
+        function internalSetHarvestLevel() {
+            const blockClass = ModAPI.reflect.getClassById("net.minecraft.block.Block");
+            const setHarvestLevelMethod = blockClass.methods.setHarvestLevel.find(m => m.parameterCount === 2);
+
+            const woodBlocks = [
+                "minecraft:log",      // Oak, Spruce, Birch, Jungle
+                "minecraft:log2",     // Acacia, Dark Oak
+                "minecraft:planks"    // All plank variants
+            ];
+
+            woodBlocks.forEach(blockId => {
+                const block = ModAPI.blocks[blockId];
+                if (block) {
+                    try {
+                        setHarvestLevelMethod.method.apply(block.getRef(), [ModAPI.util.str("axe"), 1]);
+                        console.log(`Set harvest level to 1 for ${blockId}`);
+                    } catch (e) {
+                        console.error(`Failed to set harvest level for ${blockId}:`, e);
+                    }
+                } else {
+                    console.warn(`Block ${blockId} not found`);
+                }
+            });
+        }
+
+        if (ModAPI.blocks) {
+            internalSetHarvestLevel();
+        } else {
+            ModAPI.addEventListener("bootstrap", internalSetHarvestLevel);
+        }
+    }
+    ModAPI.dedicatedServer.appendCode(setWoodHarvestLevel);
+    setWoodHarvestLevel();
+
 
 // Blockbreak listener (wood doesn't drop if no axe is used)
 ModAPI.addEventListener("blockbreak", function(event) {
