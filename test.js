@@ -1,39 +1,23 @@
-(function RecipeRemovalMod() {
-    ModAPI.meta.title("Recipe Removal Mod");
-    ModAPI.meta.description("This mod removes the vanilla crafting recipes for wooden planks.");
-    ModAPI.meta.version("v1.0");
+(()=> {
+    ModAPI.meta.title("remove_planks");
+    ModAPI.meta.version("v0.1");
+    ModAPI.meta.description("Removes the plank crafting recipe");
 
-    function removePlankRecipes() {
-        // Wait for the CraftingManager to be initialized
-        ModAPI.addEventListener("bootstrap", () => {
-            // Access the CraftingManager instance
-            const craftingManager = ModAPI.reflect.getClassById("net.minecraft.item.crafting.CraftingManager").staticMethods.getInstance.method();
+    ModAPI.require("player");
 
-            // Retrieve the current recipe list as an array
-            let recipeList = craftingManager.getRecipeList();
+    ModAPI.addEventListener("bootstrap", () => {
+        const craftingManager = ModAPI.reflect.getClassByName("CraftingManager").staticMethods.getInstance.method();
+        const recipes = craftingManager.getRecipeList();
 
-            // Identify the wooden plank item stack references
-            const woodenPlanks = [
-                ModAPI.blocks["planks"].getRef(), // Oak planks
-                ModAPI.blocks["planks:1"].getRef(), // Spruce planks
-                ModAPI.blocks["planks:2"].getRef(), // Birch planks
-                ModAPI.blocks["planks:3"].getRef(), // Jungle planks
-                ModAPI.blocks["planks:4"].getRef(), // Acacia planks
-                ModAPI.blocks["planks:5"].getRef()  // Dark Oak planks
-            ];
+        // Loop through all recipes and remove ones that output planks
+        for (let i = recipes.size() - 1; i >= 0; i--) {
+            const recipe = recipes.get(i);
+            const output = recipe.getRecipeOutput?.();
 
-            // Filter the recipes and create a new array without plank recipes
-            let newRecipeList = recipeList.filter(recipe => {
-                // Keep recipes that do not produce any wooden plank
-                return !woodenPlanks.includes(recipe.getResult().getRef());
-            });
-
-            // Update the recipe list in the CraftingManager
-            craftingManager.setRecipeList(newRecipeList); // Assuming there's a method to set the recipe list
-
-            console.log("Wooden plank recipes have been removed.");
-        });
-    }
-
-    removePlankRecipes();
+            if (output != null && output.getUnlocalizedName().contains("planks")) {
+                console.log("Removing recipe for:", output.getUnlocalizedName());
+                recipes.remove(i);
+            }
+        }
+    });
 })();
