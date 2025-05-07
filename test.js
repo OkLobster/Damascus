@@ -8,31 +8,28 @@
         ModAPI.addEventListener("bootstrap", () => {
             // Access the CraftingManager instance
             const craftingManager = ModAPI.reflect.getClassById("net.minecraft.item.crafting.CraftingManager").staticMethods.getInstance.method();
-            
-            // Retrieve the list of all recipes
-            const recipes = craftingManager.getRecipes();
 
-            // Identify the wooden plank item stack
-            const oakPlank = ModAPI.blocks["planks"].getRef(); // Oak planks (or use ModAPI.items["planks"].getRef() if accessing items directly)
-            const sprucePlank = ModAPI.blocks["planks:1"].getRef(); // Spruce planks
-            const birchPlank = ModAPI.blocks["planks:2"].getRef(); // Birch planks
-            const junglePlank = ModAPI.blocks["planks:3"].getRef(); // Jungle planks
-            const acaciaPlank = ModAPI.blocks["planks:4"].getRef(); // Acacia planks
-            const darkOakPlank = ModAPI.blocks["planks:5"].getRef(); // Dark Oak planks
-            
-            // Filter out recipes that produce wooden planks
-            recipes.forEach(recipe => {
-                if (recipe.getResult().getRef() === oakPlank ||
-                    recipe.getResult().getRef() === sprucePlank ||
-                    recipe.getResult().getRef() === birchPlank ||
-                    recipe.getResult().getRef() === junglePlank ||
-                    recipe.getResult().getRef() === acaciaPlank ||
-                    recipe.getResult().getRef() === darkOakPlank) {
-                
-                    // Remove the recipe from the CraftingManager
-                    craftingManager.getRecipeList().remove(recipe); // Assuming there's a remove method
-                }
+            // Retrieve the current recipe list as an array
+            let recipeList = craftingManager.getRecipeList();
+
+            // Identify the wooden plank item stack references
+            const woodenPlanks = [
+                ModAPI.blocks["planks"].getRef(), // Oak planks
+                ModAPI.blocks["planks:1"].getRef(), // Spruce planks
+                ModAPI.blocks["planks:2"].getRef(), // Birch planks
+                ModAPI.blocks["planks:3"].getRef(), // Jungle planks
+                ModAPI.blocks["planks:4"].getRef(), // Acacia planks
+                ModAPI.blocks["planks:5"].getRef()  // Dark Oak planks
+            ];
+
+            // Filter the recipes and create a new array without plank recipes
+            let newRecipeList = recipeList.filter(recipe => {
+                // Keep recipes that do not produce any wooden plank
+                return !woodenPlanks.includes(recipe.getResult().getRef());
             });
+
+            // Update the recipe list in the CraftingManager
+            craftingManager.setRecipeList(newRecipeList); // Assuming there's a method to set the recipe list
 
             console.log("Wooden plank recipes have been removed.");
         });
