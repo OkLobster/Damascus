@@ -1,23 +1,45 @@
-(()=> {
-    ModAPI.meta.title("remove_planks");
-    ModAPI.meta.version("v0.1");
-    ModAPI.meta.description("Removes the plank crafting recipe");
-
-    ModAPI.require("player");
+(function WoodPrimitiveMod() {
+    ModAPI.meta.title("Primitive Wood Harvest");
+    ModAPI.meta.version("v0.2");
+    ModAPI.meta.description("Breaking logs without an axe drops a stick and instantly regrows the log.");
 
     ModAPI.addEventListener("bootstrap", () => {
-        const craftingManager = ModAPI.reflect.getClassByName("CraftingManager").staticMethods.getInstance.method();
-        const recipes = craftingManager.getRecipeList();
+        const logs = ["log", "log2"];
+        const axes = [
+            ModAPI.items.wooden_axe,
+            ModAPI.items.stone_axe,
+            ModAPI.items.iron_axe,
+            ModAPI.items.golden_axe,
+            ModAPI.items.diamond_axe
+        ].map(x => x.getRef());
 
-        // Loop through all recipes and remove ones that output planks
-        for (let i = recipes.size() - 1; i >= 0; i--) {
-            const recipe = recipes.get(i);
-            const output = recipe.getRecipeOutput?.();
+        logs.forEach(logId => {
+            const block = ModAPI.blocks[logId]?.getRef();
+            if (!block) return;
 
-            if (output != null && output.getUnlocalizedName().contains("planks")) {
-                console.log("Removing recipe for:", output.getUnlocalizedName());
-                recipes.remove(i);
-            }
-        }
+            const originalBreakBlock = block.$breakBlock;
+
+            block.$breakBlock = function ($world, $pos, $state) {
+                const wrappedWorld = ModAPI.util.wrap($world);
+                const players = wrappedWorld.playerEntities.toArray1().data;
+
+                for (const player of players) {
+                    const held = player.getHeldItem?.();
+                    const isHoldingAxe = held && axes.includes(held.item?.getRef());
+                    const isNear = player.getDistanceSq($pos) < 6 * 6;
+
+                    if (isNear && !isHoldingAxe) {
+                        efb2__executeCommand(wrappedWorld.getRef(), $pos, "/summon Item ~ ~ ~ {Item:{id:stick,Count:1}}", false);
+
+                        // Instantly replace the log
+                        const stateMeta = $state.getBlock().getMetaFromState($state.getRef());
+                        wrappedWorld.setBlockState($pos, block.getStateFromMeta(stateMeta));
+                        return;
+                    }
+                }
+
+                return originalBreakBlock.call(this, $world, $pos, $state);
+            };
+        });
     });
 })();
