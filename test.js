@@ -7,6 +7,11 @@
     // Tool classes in Minecraft (roughly — adapt to Eagler as needed)
     const validToolClasses = ["pickaxe", "axe", "shovel", "hoe", "sword"];
 
+    // Fallback for ModAPI.reflect.getClass (not implemented)
+    function getClass(obj) {
+        return obj?.constructor?.__class__ || { getSimpleName: () => "unknown" };
+    }
+
     ModAPI.addEventListener("lib:tick", () => {
         const players = ModAPI.player.list();
 
@@ -16,7 +21,8 @@
             let isHoldingTool = false;
 
             if (heldItem && heldItem.getItem()) {
-                const itemClass = ModAPI.reflect.getClass(heldItem.getItem());
+                const item = heldItem.getItem();
+                const itemClass = getClass(item);
                 const className = itemClass.getSimpleName().toLowerCase();
 
                 isHoldingTool = validToolClasses.some(tool => className.includes(tool));
@@ -44,3 +50,4 @@
         });
     });
 })();
+
