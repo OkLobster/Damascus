@@ -1,26 +1,17 @@
-(function ForceAxeForWood() {
-    const woodTypes = ["log", "log2", "stripped_log", "wood"];
-    const axeKeywords = ["axe"];
+ModAPI.addEventListener("sendpacketplayerdigging", data => {
+    // Only intercept block-digging packets
+    if (data.status === "START_DESTROY_BLOCK" || data.status === "STOP_DESTROY_BLOCK") {
+        // Get the block at the target position (e.g. via SingleplayerData/world API)
+        let pos = data.position; 
+        let block = /* call to get block at pos.x,pos.y,pos.z */;
 
-    ModAPI.addEventListener("update", () => {
-        const p = ModAPI.player.getLocal();      // your player
-        if (!p.isSwingInProgress()) return;      // only when they’re swinging
-        const hit = p.rayTrace(5.0, 1.0);
-        if (!hit || hit.typeOfHit !== "BLOCK") return;
-
-        const pos = hit.getBlockPos();
-        const block = ModAPI.world.getBlock(pos);
-        const id = block.getRegistryName();
-        if (!woodTypes.some(w => id.includes(w))) return;
-
-        // Check for axe
-        const held = p.getHeldItem();
-        const name = held?.getItem()?.getUnlocalizedName?.()?.toLowerCase() || "";
-        if (!axeKeywords.some(k => name.includes(k))) {
-            // revert the break
-            const meta = block.getMeta(); 
-            p.command(`/setblock ${pos.getX()} ${pos.getY()} ${pos.getZ()} minecraft:${id} ${meta}`);
-            p.sendMessage("§cYou need an axe to chop wood!");
+        // Get the player’s current held item
+        let inv = LocalPlayerData.getInventory();
+        let heldItem = inv.mainInventory[inv.currentItem];
+        
+        // Check if block is a wood log and held item is NOT an axe
+        if (isWoodLog(block) && !isAxe(heldItem.itemId)) {
+            data.preventDefault = true;  // Cancel the break
         }
-    });
-})();
+    }
+});
