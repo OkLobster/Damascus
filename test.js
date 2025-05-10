@@ -1,37 +1,37 @@
-(function PreventWoodBreak() {
-    let lastLogPos = null;
+(function EmpowerMobsOnTick() {
+    const empowered = new Set();
 
     ModAPI.addEventListener("update", () => {
-        const player = ModAPI.player.getLocal();
-        const ray = player.rayTrace(5.0, 1.0);
-        if (!ray || ray.typeOfHit !== "BLOCK") return;
+        const mobs = ModAPI.world.getLoadedEntityList();
 
-        const pos = ray.getBlockPos();
-        const block = ModAPI.world.getBlock(pos);
-        const id = block?.getRegistryName?.() || "";
+        mobs.forEach(mob => {
+            if (!mob.isMob || empowered.has(mob.getEntityId())) return;
 
-        // Check if block is log
-        if (id.includes("log") || id.includes("wood")) {
-            lastLogPos = pos;
-        }
+            const uuid = mob.getUniqueID().toString();
 
-        // Now, check if the block disappeared
-        if (lastLogPos) {
-            const current = ModAPI.world.getBlock(lastLogPos);
-            const currentId = current?.getRegistryName?.() || "minecraft:air";
-            if (currentId === "minecraft:air") {
-                // Check if player was not holding axe
-                const item = player.getHeldItem();
-                const name = item?.getItem?.()?.getUnlocalizedName?.()?.toLowerCase() || "";
-                const isAxe = name.includes("axe");
+            // Apply two random effects
+            const effects = [
+                { id: "speed", level: 1 },
+                { id: "strength", level: 1 },
+                { id: "resistance", level: 0 },
+                { id: "fire_resistance", level: 0 },
+                { id: "regeneration", level: 0 },
+                { id: "health_boost", level: 0 }
+            ];
 
-                if (!isAxe) {
-                    player.command(`/setblock ${lastLogPos.getX()} ${lastLogPos.getY()} ${lastLogPos.getZ()} minecraft:log`);
-                    player.sendMessage("§cYou need an axe to chop wood!");
-                }
-
-                lastLogPos = null;
+            const chosen = [];
+            while (chosen.length < 2) {
+                const e = effects[Math.floor(Math.random() * effects.length)];
+                if (!chosen.some(b => b.id === e.id)) chosen.push(e);
             }
-        }
+
+            // Apply effects using commands
+            chosen.forEach(effect => {
+                mob.command(`/effect give @e[type=!player,limit=1,sort=nearest] minecraft:${effect.id} 1000000 ${effect.level} true`);
+            });
+
+            mob.setCustomNameTag("§dEmpowered");
+            empowered.add(mob.getEntityId());
+        });
     });
 })();
